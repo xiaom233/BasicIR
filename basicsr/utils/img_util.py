@@ -184,3 +184,37 @@ def crop_border(imgs, crop_border):
         else:
             return imgs[crop_border:-crop_border, crop_border:-crop_border,
                         ...]
+def imfrombytesDP(content, flag='color', float32=False):
+    """Read an image from bytes.
+
+    Args:
+        content (bytes): Image bytes got from files or other streams.
+        flag (str): Flags specifying the color type of a loaded image,
+            candidates are `color`, `grayscale` and `unchanged`.
+        float32 (bool): Whether to change to float32., If True, will also norm
+            to [0, 1]. Default: False.
+
+    Returns:
+        ndarray: Loaded image array.
+    """
+    img_np = np.frombuffer(content, np.uint8)
+    if img_np is None:
+        raise Exception('None .. !!!')
+    img = cv2.imdecode(img_np, cv2.IMREAD_UNCHANGED)
+    if float32:
+        img = img.astype(np.float32) / 65535.
+    return img
+def padding_DP(img_lqL, img_lqR, img_gt, gt_size):
+    h, w, _ = img_gt.shape
+
+    h_pad = max(0, gt_size - h)
+    w_pad = max(0, gt_size - w)
+    
+    if h_pad == 0 and w_pad == 0:
+        return img_lqL, img_lqR, img_gt
+
+    img_lqL = cv2.copyMakeBorder(img_lqL, 0, h_pad, 0, w_pad, cv2.BORDER_REFLECT)
+    img_lqR = cv2.copyMakeBorder(img_lqR, 0, h_pad, 0, w_pad, cv2.BORDER_REFLECT)
+    img_gt  = cv2.copyMakeBorder(img_gt,  0, h_pad, 0, w_pad, cv2.BORDER_REFLECT)
+    # print('img_lq', img_lq.shape, img_gt.shape)
+    return img_lqL, img_lqR, img_gt

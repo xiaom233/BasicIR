@@ -1,0 +1,105 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2021 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: GaussianColorDenoising_RestormerSigma15
+model_type: ImageRestorationModel
+scale: 1
+num_gpu: 2 # set num_gpu: 0 for cpu mode
+manual_seed: 10
+
+# dataset and data loader settings
+datasets:
+  test_1:
+    name: BSD68
+    type: Dataset_GaussianDenoising
+    dataroot_gt: ./datasets/Denoising/test/BSD68
+    dataroot_lq: none
+    sigma_test: 15
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+  test_2:
+    name: CBSD68
+    type: Dataset_GaussianDenoising
+    dataroot_gt: ./datasets/Denoising/test/CBSD68
+    dataroot_lq: none
+    sigma_test: 15
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+  test_3:
+    name: Kodak24
+    type: Dataset_GaussianDenoising
+    dataroot_gt: ./datasets/Denoising/test/Kodak
+    dataroot_lq: none
+    sigma_test: 15
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+  test_4:
+    name: McMaster
+    type: Dataset_GaussianDenoising
+    dataroot_gt: ./datasets/Denoising/test/McMaster
+    dataroot_lq: none
+    sigma_test: 15
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+  test_5:
+    name: Urban100
+    type: Dataset_GaussianDenoising
+    dataroot_gt: ./datasets/Denoising/test/Urban100
+    dataroot_lq: none
+    sigma_test: 15
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+
+# network structures
+network_g:
+  type: Restormer
+  inp_channels: 3
+  out_channels: 3
+  dim: 48
+  num_blocks: [4,6,6,8]
+  num_refinement_blocks: 4
+  heads: [1,2,4,8]
+  ffn_expansion_factor: 2.66
+  bias: False
+  LayerNorm_type: BiasFree
+  dual_pixel_task: False
+
+# path
+path:
+  pretrain_network_g:  /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/experiments/pretrained_models/Restormer/gaussian_color_denoising_sigma15.pth
+  strict_load_g: true
+  resume_state: ~
+
+# validation settings
+val:
+  save_img: false
+  grids: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29501

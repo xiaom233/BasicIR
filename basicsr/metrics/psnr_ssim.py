@@ -58,7 +58,7 @@ def calculate_psnr(img1,
     if crop_border != 0:
         img1 = img1[crop_border:-crop_border, crop_border:-crop_border, ...]
         img2 = img2[crop_border:-crop_border, crop_border:-crop_border, ...]
-    
+        
     def _psnr(img1, img2):
         if test_y_channel:
             img1 = to_y_channel(img1)

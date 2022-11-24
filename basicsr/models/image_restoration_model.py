@@ -44,7 +44,7 @@ class ImageRestorationModel(BaseModel):
     def init_training_settings(self):
         self.net_g.train()
         train_opt = self.opt['train']
-
+        # 暂时没有使用ema_decay
         # define losses
         if train_opt.get('pixel_opt'):
             pixel_type = train_opt['pixel_opt'].pop('type')
@@ -79,9 +79,9 @@ class ImageRestorationModel(BaseModel):
         #             optim_params_lowlr.append(v)
         #         else:
                 optim_params.append(v)
-            # else:
-            #     logger = get_root_logger()
-            #     logger.warning(f'Params {k} will not be optimized.')
+            else:
+                logger = get_root_logger()
+                logger.warning(f'Params {k} will not be optimized.')
         # print(optim_params)
         # ratio = 0.1
 
@@ -106,6 +106,52 @@ class ImageRestorationModel(BaseModel):
         if 'gt' in data:
             self.gt = data['gt'].to(self.device)
 
+    def optimize_parameters(self, current_iter, tb_logger):
+        self.optimizer_g.zero_grad()
+
+        if self.opt['train'].get('mixup', False):
+            self.mixup_aug()
+
+        preds = self.net_g(self.lq)
+        if not isinstance(preds, list):
+            preds = [preds]
+
+        self.output = preds[-1]
+
+        l_total = 0
+        loss_dict = OrderedDict()
+        # pixel loss
+        if self.cri_pix:
+            l_pix = 0.
+            for pred in preds:
+                l_pix += self.cri_pix(pred, self.gt)
+
+            # print('l pix ... ', l_pix)
+            l_total += l_pix
+            loss_dict['l_pix'] = l_pix
+
+        # perceptual loss
+        if self.cri_perceptual:
+            l_percep, l_style = self.cri_perceptual(self.output, self.gt)
+        #
+            if l_percep is not None:
+                l_total += l_percep
+                loss_dict['l_percep'] = l_percep
+            if l_style is not None:
+                l_total += l_style
+                loss_dict['l_style'] = l_style
+
+
+        l_total = l_total + 0. * sum(p.sum() for p in self.net_g.parameters())
+
+        l_total.backward()
+        use_grad_clip = self.opt['train'].get('use_grad_clip', True)
+        if use_grad_clip:
+            torch.nn.utils.clip_grad_norm_(self.net_g.parameters(), 0.01)
+        self.optimizer_g.step()
+
+
+        self.log_dict = self.reduce_loss_dict(loss_dict)
     def grids(self):
         b, c, h, w = self.gt.size()
         self.original_size = (b, c, h, w)
@@ -185,54 +231,6 @@ class ImageRestorationModel(BaseModel):
 
         self.output = (preds / count_mt).to(self.device)
         self.lq = self.origin_lq
-
-    def optimize_parameters(self, current_iter, tb_logger):
-        self.optimizer_g.zero_grad()
-
-        if self.opt['train'].get('mixup', False):
-            self.mixup_aug()
-
-        preds = self.net_g(self.lq)
-        if not isinstance(preds, list):
-            preds = [preds]
-
-        self.output = preds[-1]
-
-        l_total = 0
-        loss_dict = OrderedDict()
-        # pixel loss
-        if self.cri_pix:
-            l_pix = 0.
-            for pred in preds:
-                l_pix += self.cri_pix(pred, self.gt)
-
-            # print('l pix ... ', l_pix)
-            l_total += l_pix
-            loss_dict['l_pix'] = l_pix
-
-        # perceptual loss
-        if self.cri_perceptual:
-            l_percep, l_style = self.cri_perceptual(self.output, self.gt)
-        #
-            if l_percep is not None:
-                l_total += l_percep
-                loss_dict['l_percep'] = l_percep
-            if l_style is not None:
-                l_total += l_style
-                loss_dict['l_style'] = l_style
-
-
-        l_total = l_total + 0. * sum(p.sum() for p in self.net_g.parameters())
-
-        l_total.backward()
-        use_grad_clip = self.opt['train'].get('use_grad_clip', True)
-        if use_grad_clip:
-            torch.nn.utils.clip_grad_norm_(self.net_g.parameters(), 0.01)
-        self.optimizer_g.step()
-
-
-        self.log_dict = self.reduce_loss_dict(loss_dict)
-
     def test(self):
         self.net_g.eval()
         with torch.no_grad():
@@ -275,10 +273,25 @@ class ImageRestorationModel(BaseModel):
             img_name = osp.splitext(osp.basename(val_data['lq_path'][0]))[0]
 
             self.feed_data(val_data, is_val=True)
+            # print("self.lq.size()", self.lq.size())
             if self.opt['val'].get('grids', False):
                 self.grids()
 
-            self.test()
+            #padding to suitable size 
+            factor = 8
+            if factor != 0:
+                h,w = self.lq.shape[2], self.lq.shape[3]
+                H,W = ((h+factor)//factor)*factor, ((w+factor)//factor)*factor
+                padh = H-h if h%factor!=0 else 0
+                padw = W-w if w%factor!=0 else 0
+                self.lq = F.pad(self.lq, (0,padw,0,padh), 'reflect')
+                # print("Image size: ",h,w)
+                # print("Padding to",H,W)
+                # print("self.lq.size()", self.lq.size())
+                self.test()
+                self.output = self.output[:,:,:h,:w]
+            else:
+                self.test()
 
             if self.opt['val'].get('grids', False):
                 self.grids_inverse()
@@ -346,7 +359,7 @@ class ImageRestorationModel(BaseModel):
                     pbar.set_description(f'Test {img_name}')
         if rank == 0:
             pbar.close()
-
+        
         # current_metric = 0.
         collected_metrics = OrderedDict()
         if with_metrics:
@@ -359,6 +372,7 @@ class ImageRestorationModel(BaseModel):
         keys = []
         metrics = []
         for name, value in self.collected_metrics.items():
+            # print("name", name, "value", value)
             keys.append(name)
             metrics.append(value)
         metrics = torch.stack(metrics, 0)
