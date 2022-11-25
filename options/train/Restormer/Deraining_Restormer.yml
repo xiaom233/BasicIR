@@ -12,14 +12,14 @@ datasets:
     type: PairedImageDataset
     dataroot_gt: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/Deraining/train/Rain13K/target
     dataroot_lq: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/Deraining/train/Rain13K/input
-    geometric_augs: true
+    geometric_augs: false
 
     filename_tmpl: '{}'
     io_backend:
       type: disk
 
-    use_flip: false
-    use_rot: false
+    use_flip: true
+    use_rot: true
 
     # data loader
     use_shuffle: true

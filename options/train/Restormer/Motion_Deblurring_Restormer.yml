@@ -12,14 +12,14 @@ datasets:
     type: PairedImageDataset
     dataroot_gt: datasets/Motion_Deblurring/train/GoPro/sharp_crops.lmdb
     dataroot_lq: datasets/Motion_Deblurring/train/GoPro/blur_crops.lmdb
-    geometric_augs: true
+    geometric_augs: false
 
     filename_tmpl: '{}'
     io_backend:
       type: lmdb
 
-    use_flip: false
-    use_rot: false
+    use_flip: true
+    use_rot: true
 
     # data loader
     use_shuffle: true
