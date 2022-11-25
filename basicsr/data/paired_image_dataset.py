@@ -125,13 +125,6 @@ class PairedImageDataset(data.Dataset):
         img_gt, img_lq = img2tensor([img_gt, img_lq],
                                     bgr2rgb=True,
                                     float32=True)
-        factor = 8
-        h,w = img_gt.shape[1], img_gt.shape[2]
-        H,W = ((h+factor)//factor)*factor, ((w+factor)//factor)*factor
-        padh = H-h if h%factor!=0 else 0
-        padw = W-w if w%factor!=0 else 0
-        img_gt = F.pad(img_gt, (0,padw,0,padh), 'reflect')
-        img_lq = F.pad(img_lq, (0,padw,0,padh), 'reflect')
         # normalize
         if self.mean is not None or self.std is not None:
             normalize(img_lq, self.mean, self.std, inplace=True)

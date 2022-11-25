@@ -94,7 +94,7 @@ class BaseModel():
                 self.schedulers.append(
                     lr_scheduler.CosineAnnealingRestartLR(
                         optimizer, **train_opt['scheduler']))
-        elif scheduler_type == 'TrueCosineAnnealingLR':
+        elif scheduler_type == 'CosineAnnealingLR':
             print('..', 'cosineannealingLR')
             for optimizer in self.optimizers:
                 self.schedulers.append(
