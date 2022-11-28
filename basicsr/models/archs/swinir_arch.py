@@ -6,11 +6,30 @@ import math
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
-import collections.abc
-from itertools import repeat
-import warnings
 # from basicsr.utils.registry import ARCH_REGISTRY
-# from .arch_util import to_2tuple, trunc_normal_
+from itertools import repeat
+import collections.abc
+import warnings
+
+
+# From PyTorch
+def _ntuple(n):
+
+    def parse(x):
+        if isinstance(x, collections.abc.Iterable):
+            return x
+        return tuple(repeat(x, n))
+
+    return parse
+
+
+to_1tuple = _ntuple(1)
+to_2tuple = _ntuple(2)
+to_3tuple = _ntuple(3)
+to_4tuple = _ntuple(4)
+to_ntuple = _ntuple
+
+
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     # From: https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/weight_init.py
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
@@ -73,27 +92,10 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
         >>> nn.init.trunc_normal_(w)
     """
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
-    
-# From PyTorch
-def _ntuple(n):
 
-    def parse(x):
-        if isinstance(x, collections.abc.Iterable):
-            return x
-        return tuple(repeat(x, n))
-
-    return parse
-
-
-to_1tuple = _ntuple(1)
-to_2tuple = _ntuple(2)
-to_3tuple = _ntuple(3)
-to_4tuple = _ntuple(4)
-to_ntuple = _ntuple
 
 def drop_path(x, drop_prob: float = 0., training: bool = False):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
-
     From: https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/drop.py
     """
     if drop_prob == 0. or not training:
@@ -108,7 +110,6 @@ def drop_path(x, drop_prob: float = 0., training: bool = False):
 
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
-
     From: https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/layers/drop.py
     """
 
@@ -145,7 +146,6 @@ def window_partition(x, window_size):
     Args:
         x: (b, h, w, c)
         window_size (int): window size
-
     Returns:
         windows: (num_windows*b, window_size, window_size, c)
     """
@@ -162,7 +162,6 @@ def window_reverse(windows, window_size, h, w):
         window_size (int): Window size
         h (int): Height of image
         w (int): Width of image
-
     Returns:
         x: (b, h, w, c)
     """
@@ -175,7 +174,6 @@ def window_reverse(windows, window_size, h, w):
 class WindowAttention(nn.Module):
     r""" Window based multi-head self attention (W-MSA) module with relative position bias.
     It supports both of shifted and non-shifted window.
-
     Args:
         dim (int): Number of input channels.
         window_size (tuple[int]): The height and width of the window.
@@ -273,7 +271,6 @@ class WindowAttention(nn.Module):
 
 class SwinTransformerBlock(nn.Module):
     r""" Swin Transformer Block.
-
     Args:
         dim (int): Number of input channels.
         input_resolution (tuple[int]): Input resolution.
@@ -423,7 +420,6 @@ class SwinTransformerBlock(nn.Module):
 
 class PatchMerging(nn.Module):
     r""" Patch Merging Layer.
-
     Args:
         input_resolution (tuple[int]): Resolution of input feature.
         dim (int): Number of input channels.
@@ -472,7 +468,6 @@ class PatchMerging(nn.Module):
 
 class BasicLayer(nn.Module):
     """ A basic Swin Transformer layer for one stage.
-
     Args:
         dim (int): Number of input channels.
         input_resolution (tuple[int]): Input resolution.
@@ -559,7 +554,6 @@ class BasicLayer(nn.Module):
 
 class RSTB(nn.Module):
     """Residual Swin Transformer Block (RSTB).
-
     Args:
         dim (int): Number of input channels.
         input_resolution (tuple[int]): Input resolution.
@@ -650,7 +644,6 @@ class RSTB(nn.Module):
 
 class PatchEmbed(nn.Module):
     r""" Image to Patch Embedding
-
     Args:
         img_size (int): Image size.  Default: 224.
         patch_size (int): Patch token size. Default: 4.
@@ -693,7 +686,6 @@ class PatchEmbed(nn.Module):
 
 class PatchUnEmbed(nn.Module):
     r""" Image to Patch Unembedding
-
     Args:
         img_size (int): Image size.  Default: 224.
         patch_size (int): Patch token size. Default: 4.
@@ -726,7 +718,6 @@ class PatchUnEmbed(nn.Module):
 
 class Upsample(nn.Sequential):
     """Upsample module.
-
     Args:
         scale (int): Scale factor. Supported scales: 2^n and 3.
         num_feat (int): Channel number of intermediate features.
@@ -742,18 +733,16 @@ class Upsample(nn.Sequential):
             m.append(nn.Conv2d(num_feat, 9 * num_feat, 3, 1, 1))
             m.append(nn.PixelShuffle(3))
         else:
-            raise ValueError(f'scale {scale} is not supported. Supported scales: 2^n and 3.')
+            raise ValueError(f'scale {scale} is not supported. ' 'Supported scales: 2^n and 3.')
         super(Upsample, self).__init__(*m)
 
 
 class UpsampleOneStep(nn.Sequential):
     """UpsampleOneStep module (the difference with Upsample is that it always only has 1conv + 1pixelshuffle)
        Used in lightweight SR to save parameters.
-
     Args:
         scale (int): Scale factor. Supported scales: 2^n and 3.
         num_feat (int): Channel number of intermediate features.
-
     """
 
     def __init__(self, scale, num_feat, num_out_ch, input_resolution=None):
@@ -774,7 +763,6 @@ class UpsampleOneStep(nn.Sequential):
 class SwinIR(nn.Module):
     r""" SwinIR
         A PyTorch impl of : `SwinIR: Image Restoration Using Swin Transformer`, based on Swin Transformer.
-
     Args:
         img_size (int | tuple(int)): Input image size. Default 64
         patch_size (int | tuple(int)): Patch size. Default: 1
@@ -1022,10 +1010,10 @@ if __name__ == '__main__':
         upscale=2,
         img_size=(height, width),
         window_size=window_size,
-        img_range=1.,
-        depths=[6, 6, 6, 6],
-        embed_dim=60,
-        num_heads=[6, 6, 6, 6],
+        img_range=2,
+        depths=[6, 6, 6, 6, 6, 6],
+        embed_dim=180,
+        num_heads=[6, 6, 6, 6, 6, 6],
         mlp_ratio=2,
         upsampler='pixelshuffledirect')
     print(model)

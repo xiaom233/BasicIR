@@ -6,8 +6,6 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from pdb import set_trace as stx
 
 ##########################################################################
 def conv(in_channels, out_channels, kernel_size, bias=False, stride = 1):
