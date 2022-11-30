@@ -111,6 +111,7 @@ val:
   val_freq: !!float 2e4
   save_img: false
   grids: false
+  use_image: true
 
   metrics:
     psnr: # metric name, can be arbitrary
