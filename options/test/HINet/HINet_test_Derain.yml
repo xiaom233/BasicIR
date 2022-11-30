@@ -41,7 +41,7 @@ path:
 val:
   save_img: true
   grids: false
-  use_image: false
+  use_image: true
 
   metrics:
     psnr: # metric name, can be arbitrary
