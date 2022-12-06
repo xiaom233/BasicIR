@@ -21,17 +21,17 @@ def main():
     opt['n_thread'] = 20
     opt['compression_level'] = 3
 
-    opt['input_folder'] = './datasets/SIDD/Data'
-    opt['save_folder'] = './datasets/SIDD/train/input_crops'
+    opt['input_folder'] = '/mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/SIDD/SIDD'
+    opt['save_folder'] = '/mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/Denoising/train/SIDD/input_crops'
     opt['crop_size'] = 512
     opt['step'] = 384
     opt['thresh_size'] = 0
     opt['keywords'] = '_NOISY'
-    extract_subimages(opt)
+    # extract_subimages(opt)
 
-    opt['save_folder'] = './datasets/SIDD/train/gt_crops'
+    opt['save_folder'] = '/mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/Denoising/train/SIDD/gt_crops'
     opt['keywords'] = '_GT'
-    extract_subimages(opt)
+    # extract_subimages(opt)
 
     create_lmdb_for_SIDD()
 

@@ -1,20 +1,18 @@
 # general settings
-name: 028_Restormer_Benchmark_Gaussian_Denoising_Cosine_GT256B8_600k
+name: 033_SwinIR_Benchmark_Image_SuperResolution_Cosine_GT256B8_600k
 model_type: ImageRestorationModel
-scale: 1
+scale: 4
 num_gpu: 4  # set num_gpu: 0 for cpu mode
 manual_seed: 100
 
 # dataset and data loader settings
 datasets:
   train:
-    name: TrainSet
-    type: GaussianNoiseImageDataset
-    sigma_type: constant
-    sigma_range: 50
-    in_ch: 3    ## RGB image
-    dataroot_gt:  datasets/Denoising/train/DFWB.lmdb
-    dataroot_lq: none
+    name: DF2K
+    type: PairedImageDataset
+    # in_ch: 3    ## RGB image
+    dataroot_gt: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/DF2K_train_HR_sub.lmdb
+    dataroot_lq: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/DF2K_train_LR_bicubic_X4_sub.lmdb
 
     filename_tmpl: '{}'
     io_backend:
@@ -26,47 +24,36 @@ datasets:
     use_shuffle: true
     num_worker_per_gpu: 8
     batch_size_per_gpu: 2
-
-    ### -------------Progressive training--------------------------
-    # mini_batch_sizes: [8,5,4,2,1,1]             # Batch size per gpu   
-    # iters: [92000,64000,48000,36000,36000,324000]
-    # gt_size: 384   # Max patch size for progressive training
-    # gt_sizes: [128,160,192,256,320,384]  # Patch sizes for progressive training.
-    ### ------------------------------------------------------------
-
-    ### ------- Training on single fixed-patch size 128x128---------
-    # mini_batch_sizes: [8]   
-    iters: [600000]
+    # iters: [600000]
     gt_size: 256
-    gt_sizes: [256]
-    ### ------------------------------------------------------------
-
+    # gt_sizes: [256]
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
   val:
-    name: ValSet
-    type: GaussianNoiseImageDataset
-    sigma_test: 50
-    in_ch: 3  ## RGB image
-    dataroot_gt: datasets/Denoising/test/CBSD68
-    dataroot_lq: none
+    name: Set5
+    type: PairedImageDataset
+    # in_ch: 3  ## RGB image
+    dataroot_gt: datasets/ImageSR/Set5/GTmod12
+    dataroot_lq: datasets/ImageSR/Set5/LRbicx4
     io_backend:
       type: disk
 
 # network structures
 network_g:
-  type: Restormer
-  inp_channels: 3
-  out_channels: 3
-  dim: 48
-  num_blocks: [4,6,6,8]
-  num_refinement_blocks: 4
-  heads: [1,2,4,8]
-  ffn_expansion_factor: 2.66
-  bias: False
-  LayerNorm_type: BiasFree
-  dual_pixel_task: False
+  type: SwinIR
+  upscale: 4
+  in_chans: 3
+  img_size: 64
+  window_size: 8
+  img_range: 1.
+  depths: [6, 6, 6, 6, 6, 6]
+  embed_dim: 180
+  num_heads: [6, 6, 6, 6, 6, 6]
+  mlp_ratio: 2
+  upsampler: 'pixelshuffle'
+  resi_connection: '1conv'
+
 
 
 # path
@@ -103,24 +90,24 @@ train:
 
 # validation settings
 val:
-  window_size: 8
+  # window_size: 8
   val_freq: !!float 5e3
   save_img: false
   rgb2bgr: true
   use_image: true
-  max_minibatch: 8
+  max_minibatch: 1
   padding_factor: 8
   is_square: false
   metrics:
     psnr: # metric name, can be arbitrary
       type: calculate_psnr
-      crop_border: 0
-      test_y_channel: False
+      crop_border: 4
+      test_y_channel: true
 
 # logging settings
 logger:
   print_freq: 250
-  save_checkpoint_freq: !!float 5e3
+  save_checkpoint_freq: !!float 1e4
   use_tb_logger: true
   wandb:
     project: ~

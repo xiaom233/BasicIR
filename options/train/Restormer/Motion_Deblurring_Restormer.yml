@@ -1,5 +1,5 @@
 # general settings
-name: 017_Restormer_Benchmark_Motion_Deblur_Cosine_B8_600k
+name: 020_Restormer_Benchmark_motion_deblur_Cosine_GT256B8_600k
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4  # set num_gpu: 0 for cpu mode

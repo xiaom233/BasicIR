@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
-from .arch_util import  trunc_normal_
+# from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from timm.models.layers import to_2tuple, trunc_normal_
 import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
@@ -9,24 +10,25 @@ import math
 import numpy as np
 import time
 from torch import einsum
-import collections.abc
 
-# From PyTorch
-def _ntuple(n):
+# # From PyTorch
+# def _ntuple(n):
 
-    def parse(x):
-        if isinstance(x, collections.abc.Iterable):
-            return x
-        return tuple(repeat(x, n))
+#     def parse(x):
+#         if isinstance(x, collections.abc.Iterable):
+#             return x
+#         print("x",x,type(x))
+#         print("n",n,type(n))
+#         return tuple(repeat(x, n))
 
-    return parse
+#     return parse
 
 
-to_1tuple = _ntuple(1)
-to_2tuple = _ntuple(2)
-to_3tuple = _ntuple(3)
-to_4tuple = _ntuple(4)
-to_ntuple = _ntuple
+# to_1tuple = _ntuple(1)
+# to_2tuple = _ntuple(2)
+# to_3tuple = _ntuple(3)
+# to_4tuple = _ntuple(4)
+# to_ntuple = _ntuple
 
 def drop_path(x, drop_prob: float = 0., training: bool = False):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
@@ -501,7 +503,13 @@ class WindowAttention(nn.Module):
         self.win_size = win_size  # Wh, Ww
         self.num_heads = num_heads
         head_dim = dim // num_heads
+        self.head_dim = head_dim
         self.scale = qk_scale or head_dim ** -0.5
+        # print("*********************************************")
+        # print("qk_scale:",qk_scale)
+        # print("head_dim:",head_dim)
+        # print("self.scale:",self.scale)
+        # print("*********************************************")
 
         # define a parameter table of relative position bias
         self.relative_position_bias_table = nn.Parameter(
@@ -538,6 +546,12 @@ class WindowAttention(nn.Module):
     def forward(self, x, attn_kv=None, mask=None):
         B_, N, C = x.shape
         q, k, v = self.qkv(x,attn_kv)
+        # print("type of q,k,v",type(q),type(k),type(v))
+        # print("shape of q,k,v",q.shape,k.shape,v.shape)
+        # print("self.scale",self.scale)
+        # print("self.dim",self.dim)
+        # print("self.num_heads",self.num_heads)
+        # print("self.head_dim",self.head_dim)
         q = q * self.scale
         attn = (q @ k.transpose(-2, -1))
 
@@ -747,6 +761,7 @@ class LeFF(nn.Module):
 ########### window operation#############
 def window_partition(x, win_size, dilation_rate=1):
     B, H, W, C = x.shape
+    # print("________window_partition________",B, H, W, C)
     if dilation_rate !=1:
         x = x.permute(0,3,1,2) # B, C, H, W
         assert type(dilation_rate) is int, 'dilation_rate should be a int'
@@ -1315,15 +1330,20 @@ class Uformer(nn.Module):
         y = self.input_proj(x)
         y = self.pos_drop(y)
         #Encoder
+        # print("Shape of x: ", x.shape)
+        # print("Shape of y",y.shape)
         conv0 = self.encoderlayer_0(y,mask=mask)
         pool0 = self.dowsample_0(conv0)
+        # print("Shape of pool0",pool0.shape)
         conv1 = self.encoderlayer_1(pool0,mask=mask)
         pool1 = self.dowsample_1(conv1)
+        # print("Shape of pool1",pool1.shape)
         conv2 = self.encoderlayer_2(pool1,mask=mask)
         pool2 = self.dowsample_2(conv2)
+        # print("Shape of pool2",pool2.shape)
         conv3 = self.encoderlayer_3(pool2,mask=mask)
         pool3 = self.dowsample_3(conv3)
-
+        # print("Shape of pool3",pool3.shape)
         # Bottleneck
         conv4 = self.conv(pool3, mask=mask)
 

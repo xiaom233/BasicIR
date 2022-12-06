@@ -33,6 +33,7 @@ class ImageRestorationModel(BaseModel):
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_network_g', None)
         if load_path is not None:
+            # print("load pretrained model",self.opt['path'].get('param_key', 'params'))
             self.load_network(self.net_g, load_path,
                               self.opt['path'].get('strict_load_g', True), param_key=self.opt['path'].get('param_key', 'params'))
 
@@ -273,26 +274,43 @@ class ImageRestorationModel(BaseModel):
             img_name = osp.splitext(osp.basename(val_data['lq_path'][0]))[0]
 
             self.feed_data(val_data, is_val=True)
-            # print("self.lq.size()", self.lq.size())
             if self.opt['val'].get('grids', False):
                 self.grids()
 
             #padding to suitable size 
-            factor = 8
-            if factor != 0:
-                h,w = self.lq.shape[2], self.lq.shape[3]
+            factor = self.opt['val'].get('padding_factor', 1)
+            # print("start factor: ", factor)
+            is_square = self.opt['val'].get('is_square', False)
+            h,w = self.lq.shape[2], self.lq.shape[3]
+            # print(self.lq)
+            if is_square:
+                # print("################ Padding image to square ################")
+                import math 
+                X = int(math.ceil(max(h,w)/float(factor))*factor)
+                padh = X-h 
+                padw = X-w 
+                self.lq = F.pad(self.lq, (padw//2,padw//2,padh//2,padh//2), 'constant', 0)
+                self.test()
+                self.output = self.output[:,:,padh//2:padh//2+h,padw//2:padw//2+w]
+
+            else:
                 H,W = ((h+factor)//factor)*factor, ((w+factor)//factor)*factor
                 padh = H-h if h%factor!=0 else 0
                 padw = W-w if w%factor!=0 else 0
                 self.lq = F.pad(self.lq, (0,padw,0,padh), 'reflect')
-                # print("Image size: ",h,w)
-                # print("Padding to",H,W)
-                # print("self.lq.size()", self.lq.size())
+                # h_pad = (h // factor + 1) * factor - h
+                # w_pad = (w // factor + 1) * factor - w
+                # self.lq = torch.cat([self.lq, torch.flip(self.lq, [2])], 2)[:, :, :h + h_pad, :]
+                # self.lq = torch.cat([self.lq, torch.flip(self.lq, [3])], 3)[:, :, :, :w + w_pad]
                 self.test()
-                self.output = self.output[:,:,:h,:w]
-            else:
-                self.test()
-
+                self.output = self.output[:,:,:h*self.scale,:w*self.scale]
+                # self.output = self.output[:,:,:h,:w]
+            # print("factor: ", factor)
+            # print("Image size: ",h,w)
+            # print("Padding to",H,W)
+            # print("self.lq.size()", self.lq.size())
+            # print("self.output.size()", self.output.size())
+            # print("output",self.output)
             if self.opt['val'].get('grids', False):
                 self.grids_inverse()
 
