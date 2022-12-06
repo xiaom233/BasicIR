@@ -279,21 +279,21 @@ class BaseModel():
             load_net = load_net[param_key]
         print(' load net keys', load_net.keys)
         # remove unnecessary 'module.'
-        if self.opt['network_g']['type'] == 'MPRNet':
-            load_net = load_net["state_dict"]
-        elif  self.opt['network_g']['type'] == 'Uformer':
-            load_net = load_net["state_dict"]
-            new_state_dict = OrderedDict()
-            for k, v in load_net.items():
-                name = k[7:] if 'module.' in k else k
-                new_state_dict[name] = v
-            load_net = new_state_dict
-        else:
-            for k, v in deepcopy(load_net).items():
-                if k.startswith('module.'):
-                    load_net[k[7:]] = v
-                    load_net.pop(k)
-            self._print_different_keys_loading(net, load_net, strict)
+        # if self.opt['network_g']['type'] == 'MPRNet':
+        #     load_net = load_net["state_dict"]
+        # elif  self.opt['network_g']['type'] == 'Uformer':
+        #     load_net = load_net["state_dict"]
+        #     new_state_dict = OrderedDict()
+        #     for k, v in load_net.items():
+        #         name = k[7:] if 'module.' in k else k
+        #         new_state_dict[name] = v
+        #     load_net = new_state_dict
+        # else:
+        for k, v in deepcopy(load_net).items():
+            if k.startswith('module.'):
+                load_net[k[7:]] = v
+                load_net.pop(k)
+        self._print_different_keys_loading(net, load_net, strict)
         net.load_state_dict(load_net, strict=strict)
 
     @master_only
