@@ -1068,3 +1068,27 @@ class MAXIM(nn.Module):
 # input = torch.zeros(size=(2,3,256,256))
 # out,_ = maxim(input)
 # print(out.shape)
+#         params: 13.35383 M, GFLOPS: 206.743273472
+#         "S-2": {
+#             "features": 32,
+#             "depth": 3,
+#             "num_stages": 2,
+#             "num_groups": 2,
+#             "num_bottleneck_blocks": 2,
+#             "block_gmlp_factor": 2,
+#             "grid_gmlp_factor": 2,
+#             "input_proj_factor": 2,
+#             "channels_reduction": 4,
+#         },
+#         params: 20.599145 M, GFLOPS: 320.32194560000005
+#         "S-3": {
+#             "features": 32,
+#             "depth": 3,
+#             "num_stages": 3,
+#             "num_groups": 2,
+#             "num_bottleneck_blocks": 2,
+#             "block_gmlp_factor": 2,
+#             "grid_gmlp_factor": 2,
+#             "input_proj_factor": 2,
+#             "channels_reduction": 4,
+#         },
