@@ -465,8 +465,9 @@ class ImageRestorationModel(BaseModel):
                 self.grids()
 
             # padding to suitable size
-            factor = 128
+            factor = self.opt['val'].get('padding_factor', 1)
             if self.opt['network_g']['type'] == 'Uformer':
+                factor = 128
                 original = self.lq
                 rgb_noisy, mask = self.expand2square(self.lq, factor)
                 self.lq = rgb_noisy
