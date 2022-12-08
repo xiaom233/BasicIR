@@ -15,8 +15,8 @@ datasets:
   train:
     name: Rain13K
     type: PairedImageDataset
-    dataroot_gt: /data/yhliu/DATA/Derain/train/Rain13K/target
-    dataroot_lq: /data/yhliu/DATA/Derain/train/Rain13K/input
+    dataroot_gt: /data0/zyli/datasets/Derain/train/Rain13K/target
+    dataroot_lq: /data0/zyli/datasets/Derain/train/Rain13K/input
 
     filename_tmpl: '{}'
     io_backend:
@@ -50,8 +50,8 @@ datasets:
   val:
     name: Test100
     type: PairedImageDataset
-    dataroot_gt: /data/yhliu/DATA/Derain/test/Test100/target
-    dataroot_lq: /data/yhliu/DATA/Derain/test/Test100/input
+    dataroot_gt: /data0/zyli/datasets/Derain/test/Test100/target
+    dataroot_lq: /data0/zyli/datasets/Derain/test/Test100/input
     io_backend:
       type: disk
 

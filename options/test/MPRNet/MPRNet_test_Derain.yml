@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: MPRNet-Derain-test
+name: 023_MPRNet_Derain_test_all
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 1 # set num_gpu: 0 for cpu mode
@@ -14,16 +14,29 @@ manual_seed: 10
 # dataset and data loader settings
 datasets:
 
-  val:
-    name: Test1200
+  test1:
+    name: Test100
     type: PairedImageDataset
-
-    dataroot_gt: /data/yhliu/DATA/Derain/test/Test1200/target
-    dataroot_lq: /data/yhliu/DATA/Derain/test/Test1200/input
-
+    dataroot_gt: /data0/zyli/datasets/Derain/test/Test100/target
+    dataroot_lq: /data0/zyli/datasets/Derain/test/Test100/input
     io_backend:
       type: disk
 
+  test2:
+    name: Rain100L
+    type: PairedImageDataset
+    dataroot_gt: /data0/zyli/datasets/Derain/test/Rain100L/target
+    dataroot_lq: /data0/zyli/datasets/Derain/test/Rain100L/input
+    io_backend:
+      type: disk
+
+  test3:
+    name: Rain100H
+    type: PairedImageDataset
+    dataroot_gt: /data0/zyli/datasets/Derain/test/Rain100H/target
+    dataroot_lq: /data0/zyli/datasets/Derain/test/Rain100H/input
+    io_backend:
+      type: disk
 # network structures
 network_g:
   type: MPRNet # all hyper-parameters are default in the original version
@@ -36,17 +49,16 @@ network_g:
   kernel_size: 3
   reduction: 4
   bias: false
-
 # path
 path:
-  pretrain_network_g: experiments/pretrained_models/MPRNet/model_deraining.pth
+  pretrain_network_g: /data0/zyli/projects/BasicIR/experiments/026_MPRNet_Benchmark_Derain_Cosine_GT256B8_600k/models/net_g_5000.pth
   strict_load_g: true
   resume_state: ~
-  param_key: ~
+  param_key: params
 
 # validation settings
 val:
-  save_img: true
+  save_img: false
   grids: false
   use_image: true
 
@@ -54,11 +66,11 @@ val:
     psnr: # metric name, can be arbitrary
       type: calculate_psnr
       crop_border: 0
-      test_y_channel: true
+      test_y_channel: false
     ssim:
       type: calculate_ssim
       crop_border: 0
-      test_y_channel: true
+      test_y_channel: false
 
 # dist training settings
 dist_params:
