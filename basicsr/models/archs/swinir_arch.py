@@ -962,10 +962,15 @@ class SwinIR(nn.Module):
 
         if self.upsampler == 'pixelshuffle':
             # for classical SR
+            # print("start,shape of x", x.shape)
             x = self.conv_first(x)
+            # print("first,shape of x", x.shape)
             x = self.conv_after_body(self.forward_features(x)) + x
+            # print("after body,shape of x", x.shape)
             x = self.conv_before_upsample(x)
+            # print("before_upsample,shape of x", x.shape)
             x = self.conv_last(self.upsample(x))
+            # print("conv_last shape of x", x.shape)
         elif self.upsampler == 'pixelshuffledirect':
             # for lightweight SR
             x = self.conv_first(x)

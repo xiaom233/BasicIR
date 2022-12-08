@@ -275,9 +275,10 @@ class BaseModel():
             f'Loading {net.__class__.__name__} model from {load_path}.')
         load_net = torch.load(
             load_path, map_location=lambda storage, loc: storage)
+        # print(load_net.keys())
         if param_key is not None:
             load_net = load_net[param_key]
-        print(' load net keys', load_net.keys)
+        # print(' load net keys', load_net.keys)
         # remove unnecessary 'module.'
         # if self.opt['network_g']['type'] == 'MPRNet':
         #     load_net = load_net["state_dict"]

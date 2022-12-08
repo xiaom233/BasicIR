@@ -88,7 +88,8 @@ path:
 val:
   save_img: false
   grids: false
-
+  padding_factor: 8
+  is_square: false
   metrics:
     psnr: # metric name, can be arbitrary
       type: calculate_psnr

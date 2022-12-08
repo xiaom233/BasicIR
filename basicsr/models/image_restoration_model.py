@@ -33,6 +33,7 @@ class ImageRestorationModel(BaseModel):
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_network_g', None)
         if load_path is not None:
+            # print("load pretrained model",self.opt['path'].get('param_key', 'params'))
             self.load_network(self.net_g, load_path,
                               self.opt['path'].get('strict_load_g', True), param_key=self.opt['path'].get('param_key', 'params'))
 
@@ -302,13 +303,14 @@ class ImageRestorationModel(BaseModel):
             img_name = osp.splitext(osp.basename(val_data['lq_path'][0]))[0]
 
             self.feed_data(val_data, is_val=True)
-            # print("self.lq.size()", self.lq.size())
             if self.opt['val'].get('grids', False):
                 self.grids()
 
             #padding to suitable size 
-            factor = 128
+
+            factor = self.opt['val'].get('padding_factor', 1)
             if self.opt['network_g']['type'] == 'Uformer':
+                factor = 128
                 original = self.lq
                 rgb_noisy, mask = self.expand2square(self.lq, factor)
                 self.lq = rgb_noisy
@@ -330,7 +332,7 @@ class ImageRestorationModel(BaseModel):
                 # print("self.lq.size()", self.lq.size())
                 self.test()
                 self.output = self.output[:,:,:h,:w]
-
+                
             if self.opt['val'].get('grids', False):
                 self.grids_inverse()
 
