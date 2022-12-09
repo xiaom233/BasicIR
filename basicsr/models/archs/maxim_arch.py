@@ -1060,7 +1060,7 @@ class MAXIM(nn.Module):
             decs_prev = decs
             # Store outputs
             outputs_all.append(outputs)
-        return output1.permute(0,3,1,2),_
+        return outputs, output1.permute(0,3,1,2)
 
 
 

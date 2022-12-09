@@ -87,6 +87,7 @@ class MSELoss(nn.Module):
         return self.loss_weight * mse_loss(
             pred, target, weight, reduction=self.reduction)
 
+
 class PSNRLoss(nn.Module):
 
     def __init__(self, loss_weight=1.0, reduction='mean', toY=False):
@@ -114,3 +115,41 @@ class PSNRLoss(nn.Module):
 
         return self.loss_weight * self.scale * torch.log(((pred - target) ** 2).mean(dim=(1, 2, 3)) + 1e-8).mean()
 
+
+class CharbonnierLoss(nn.Module):
+    """Charbonnier Loss (L1)"""
+
+    def __init__(self, eps=1e-3):
+        super(CharbonnierLoss, self).__init__()
+        self.eps = eps
+
+    def forward(self, x, y):
+        diff = x - y
+        # loss = torch.sum(torch.sqrt(diff * diff + self.eps))
+        loss = torch.mean(torch.sqrt((diff * diff) + (self.eps*self.eps)))
+        return loss
+
+
+class FrequencyLoss(nn.Module):
+    def __init__(self):
+        super(FrequencyLoss, self).__init__()
+
+    def forward(self, pred, target,  **kwargs):
+        fft_pred = torch.rfft(pred, signal_ndim=2, normalized=False, onesided=False)
+        fft_target = torch.rfft(target, signal_ndim=2, normalized=False, onesided=False)
+
+        return l1_loss(fft_pred, fft_target)
+
+
+class MAXIMLoss(nn.Module):
+    def __init__(self, loss_weight=1.0):
+        super(MAXIMLoss, self).__init__()
+        self.loss_weight = loss_weight
+        self.charLoss = CharbonnierLoss(1e-3)
+        self.freqLoss = FrequencyLoss()
+
+    def forward(self, pred, target):
+        l_char = self.charLoss(pred, target)
+        f_loss = self.freqLoss(pred, target)
+
+        return self.loss_weight * (l_char + 0.1 * f_loss)

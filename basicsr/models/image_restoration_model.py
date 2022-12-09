@@ -20,6 +20,37 @@ from basicsr.utils.dist_util import get_dist_info
 loss_module = importlib.import_module('basicsr.models.losses')
 metric_module = importlib.import_module('basicsr.metrics')
 
+
+class Mixing_Augment:
+    def __init__(self, mixup_beta, use_identity, device):
+        self.dist = torch.distributions.beta.Beta(torch.tensor([mixup_beta]), torch.tensor([mixup_beta]))
+        self.device = device
+
+        self.use_identity = use_identity
+
+        self.augments = [self.mixup]
+
+    def mixup(self, target, input_):
+        lam = self.dist.rsample((1, 1)).item()
+
+        r_index = torch.randperm(target.size(0)).to(self.device)
+
+        target = lam * target + (1 - lam) * target[r_index, :]
+        input_ = lam * input_ + (1 - lam) * input_[r_index, :]
+
+        return target, input_
+
+    def __call__(self, target, input_):
+        if self.use_identity:
+            augment = random.randint(0, len(self.augments))
+            if augment < len(self.augments):
+                target, input_ = self.augments[augment](target, input_)
+        else:
+            augment = random.randint(0, len(self.augments) - 1)
+            target, input_ = self.augments[augment](target, input_)
+        return target, input_
+
+
 class ImageRestorationModel(BaseModel):
     """Base Deblur model for single image deblur."""
 
@@ -29,6 +60,13 @@ class ImageRestorationModel(BaseModel):
         # define network
         self.net_g = define_network(deepcopy(opt['network_g']))
         self.net_g = self.model_to_device(self.net_g)
+
+        self.mixing_flag = self.opt['train']['mixing_augs'].get('mixup', False)
+        if self.mixing_flag:
+            mixup_beta = self.opt['train']['mixing_augs'].get('mixup_beta', 1.2)
+            use_identity = self.opt['train']['mixing_augs'].get('use_identity', False)
+            self.mixing_augmentation = Mixing_Augment(mixup_beta, use_identity, self.device)
+
 
         # load pretrained models
         load_path = self.opt['path'].get('pretrain_network_g', None)
@@ -106,6 +144,8 @@ class ImageRestorationModel(BaseModel):
         self.lq = data['lq'].to(self.device)
         if 'gt' in data:
             self.gt = data['gt'].to(self.device)
+        if self.mixing_flag and is_val:
+            self.gt, self.lq = self.mixing_augmentation(self.gt, self.lq)
 
     def optimize_parameters(self, current_iter, tb_logger):
         self.optimizer_g.zero_grad()
@@ -113,19 +153,34 @@ class ImageRestorationModel(BaseModel):
         if self.opt['train'].get('mixup', False):
             self.mixup_aug()
 
-        preds = self.net_g(self.lq)
-        if not isinstance(preds, list):
-            preds = [preds]
+        if self.opt['network_g']['type'] == 'MAXIM':
+            preds, result = self.net_g(self.lq)
+            self.output = result
+        else:
+            preds = self.net_g(self.lq)
+            if not isinstance(preds, list):
+                preds = [preds]
+            self.output = preds[-1]
 
-        self.output = preds[-1]
 
         l_total = 0
         loss_dict = OrderedDict()
         # pixel loss
         if self.cri_pix:
             l_pix = 0.
-            for pred in preds:
-                l_pix += self.cri_pix(pred, self.gt)
+            if self.opt['network_g']['type'] == 'MAXIM':
+                num_stages = self.opt['network_g']['num_supervision_scales']
+                gt_128 = F.interpolate(self.gt, scale_factor=1/2, mode='bilinear')
+                gt_64 = F.interpolate(self.gt, scale_factor=1/4, mode='bilinear')
+                gt_32 = F.interpolate(self.gt, scale_factor=1/8, mode='bilinear')
+                for i in range(num_stages+1):
+                    l_pix += self.cri_pix(pred[i * 4], gt_32)
+                    l_pix += self.cri_pix(pred[i * 4 + 1], gt_64)
+                    l_pix += self.cri_pix(pred[i * 4 + 2], gt_128)
+                    l_pix += self.cri_pix(pred[i * 4 + 3], self.gt)
+            else:
+                for pred in preds:
+                    l_pix += self.cri_pix(pred, self.gt)
 
             # print('l pix ... ', l_pix)
             l_total += l_pix
@@ -281,6 +336,28 @@ class ImageRestorationModel(BaseModel):
 
         return img, mask
 
+    def mod_padding_symmetric(self, image, factor=64):
+        """Padding the image to be divided by factor."""
+        height, width = image.shape[2], image.shape[3]
+        height_pad, width_pad = ((height + factor) // factor) * factor, (
+                (width + factor) // factor) * factor
+        padh = height_pad - height if height % factor != 0 else 0
+        padw = width_pad - width if width % factor != 0 else 0
+        image = F.pad(
+            image, [(padh // 2, padh // 2), (padw // 2, padw // 2), (0, 0)],
+            mode='reflect')
+        return image
+
+    def unpadding_for_maxim(self):
+        # unpad images to get the original resolution
+        new_height, new_width = self.output.shape[2], self.output.shape[3]
+        height_even, width_even = self.lq.shape[2], self.lq.shape[3]
+        h_start = new_height // 2 - height_even // 2
+        h_end = h_start + height
+        w_start = new_width // 2 - width_even // 2
+        w_end = w_start + width
+        self.output = self.output[:, :, h_start:h_end, w_start:w_end]
+
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img, rgb2bgr, use_image):
         dataset_name = dataloader.dataset.opt['name']
         with_metrics = self.opt['val'].get('metrics') is not None
@@ -318,6 +395,15 @@ class ImageRestorationModel(BaseModel):
                 self.lq = original
                 self.output = self.output.to(self.device)
                 self.output = torch.masked_select(self.output, mask.bool()).reshape(1,3,original.shape[2],original.shape[3])
+            elif self.opt['network_g']['type'] == 'MAXIM':
+                factor = 64
+                original = self.lq
+                rgb_noisy, mask = self.mod_padding_symmetric(self.lq, factor)
+                self.lq = rgb_noisy
+                self.test()
+                self.lq = original
+                self.output = self.output.to(self.device)
+                self.unpadding_for_maxim()
             else:
                 h,w = self.lq.shape[2], self.lq.shape[3]
                 H,W = ((h+factor)//factor)*factor, ((w+factor)//factor)*factor
@@ -333,7 +419,7 @@ class ImageRestorationModel(BaseModel):
                 # print("self.lq.size()", self.lq.size())
                 self.test()
                 self.output = self.output[:,:,:h,:w]
-                
+
             if self.opt['val'].get('grids', False):
                 self.grids_inverse()
 
