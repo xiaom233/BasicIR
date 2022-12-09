@@ -62,7 +62,7 @@ class ImageRestorationModel(BaseModel):
         self.net_g = self.model_to_device(self.net_g)
 
         self.mixing_flag = False
-        if 'mixing_augs' in self.opt['train']:
+        if 'train' in self.opt and 'mixing_augs' in self.opt['train']:
             self.mixing_flag = self.opt['train']['mixing_augs'].get('mixup', False)
             if self.mixing_flag:
                 mixup_beta = self.opt['train']['mixing_augs'].get('mixup_beta', 1.2)
