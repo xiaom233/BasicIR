@@ -61,11 +61,13 @@ class ImageRestorationModel(BaseModel):
         self.net_g = define_network(deepcopy(opt['network_g']))
         self.net_g = self.model_to_device(self.net_g)
 
-        self.mixing_flag = self.opt['train']['mixing_augs'].get('mixup', False)
-        if self.mixing_flag:
-            mixup_beta = self.opt['train']['mixing_augs'].get('mixup_beta', 1.2)
-            use_identity = self.opt['train']['mixing_augs'].get('use_identity', False)
-            self.mixing_augmentation = Mixing_Augment(mixup_beta, use_identity, self.device)
+        self.mixing_flag = False
+        if 'mixing_augs' in self.opt['train']:
+            self.mixing_flag = self.opt['train']['mixing_augs'].get('mixup', False)
+            if self.mixing_flag:
+                mixup_beta = self.opt['train']['mixing_augs'].get('mixup_beta', 1.2)
+                use_identity = self.opt['train']['mixing_augs'].get('use_identity', False)
+                self.mixing_augmentation = Mixing_Augment(mixup_beta, use_identity, self.device)
 
 
         # load pretrained models
