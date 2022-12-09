@@ -279,8 +279,8 @@ class GaussianNoiseImageDataset(data.Dataset):
         else:
               # print("img_lq.shape",img_lq.shape)
             np.random.seed(seed=0)
-            img_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2RGB)
-            img_lq = cv2.cvtColor(img_lq, cv2.COLOR_BGR2RGB)
+            # img_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2RGB)
+            # img_lq = cv2.cvtColor(img_lq, cv2.COLOR_BGR2RGB)
             img_lq += np.random.normal(0, self.sigma_test/255.0, img_lq.shape)
             # noise_level_map = torch.ones((1, img_lq.shape[0], img_lq.shape[1])).mul_(self.sigma_test/255.0).float()
             # img_gt = cv2.cvtColor(img_gt, cv2.COLOR_BGR2RGB)

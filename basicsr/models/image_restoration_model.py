@@ -323,9 +323,6 @@ class ImageRestorationModel(BaseModel):
                 H,W = ((h+factor)//factor)*factor, ((w+factor)//factor)*factor
                 padh = H-h if h%factor!=0 else 0
                 padw = W-w if w%factor!=0 else 0
-                # X = max(h+padh, w+padw)
-                # padw = X-w
-                # padh = X-h
                 # self.lq = F.pad(self.lq, (0,padw,0,padh), 'constant', 0)
                 self.lq = F.pad(self.lq, (0,padw,0,padh), 'reflect')
                 # print("Image size: ",h,w)

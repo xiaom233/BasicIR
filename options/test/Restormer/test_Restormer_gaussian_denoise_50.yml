@@ -35,7 +35,7 @@ datasets:
       type: disk
   test_3:
     name: Kodak24
-    type: Dataset_GaussianDenoising
+    type: GaussianNoiseImageDataset
     dataroot_gt: ./datasets/Denoising/test/Kodak
     dataroot_lq: none
     sigma_test: 50
@@ -53,27 +53,16 @@ datasets:
     io_backend:
       # type: lmdb
       type: disk
-  # test_5:
-  #   name: Urban100
-  #   type: GaussianNoiseImageDataset
-  #   dataroot_gt: ./datasets/Denoising/test/Urban100
-  #   dataroot_lq: none
-  #   sigma_test: 50
-  #   in_ch: 3  ## RGB image
-  #   io_backend:
-  #     # type: lmdb
-  #     type: disk
-  # test_5:
-  #   name: cropped_Kodak24
-  #   type: Dataset_GaussianDenoising
-  #   dataroot_gt: ./datasets/Denoising/test/Cropped_kodak
-  #   dataroot_lq: none
-  #   sigma_test: 50
-  #   in_ch: 3  ## RGB image
-  #   io_backend:
-  #     # type: lmdb
-  #     type: disk
-# network structures
+  test_5:
+    name: Urban100
+    type: GaussianNoiseImageDataset
+    dataroot_gt: ./datasets/Denoising/test/Urban100
+    dataroot_lq: none
+    sigma_test: 50
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
 network_g:
   type: Restormer
   inp_channels: 3
