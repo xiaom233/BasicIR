@@ -187,7 +187,26 @@ class Upsample(nn.Module):
 
     def forward(self, x):
         return self.body(x)
+class SR_Upsample(nn.Sequential):
+    """SR_Upsample module.
+    Args:
+        scale (int): Scale factor. Supported scales: 2^n and 3.
+        num_feat (int): Channel number of features.
+    """
 
+    def __init__(self, scale, num_feat):
+        m = []
+        import math
+        if (scale & (scale - 1)) == 0:  # scale = 2^n
+            for _ in range(int(math.log(scale, 2))):
+                m.append(nn.Conv2d(num_feat, 4 * num_feat, kernel_size = 3, stride = 1, padding = 1))
+                m.append(nn.PixelShuffle(2))
+        elif scale == 3:
+            m.append(nn.Conv2d(num_feat, 9 * num_feat, 3, 1, 1))
+            m.append(nn.PixelShuffle(3))
+        else:
+            raise ValueError(f'scale {scale} is not supported. ' 'Supported scales: 2^n and 3.')
+        super(SR_Upsample, self).__init__(*m)
 ##########################################################################
 ##---------- Restormer -----------------------
 class Restormer(nn.Module):
@@ -201,7 +220,8 @@ class Restormer(nn.Module):
         ffn_expansion_factor = 2.66,
         bias = False,
         LayerNorm_type = 'WithBias',   ## Other option 'BiasFree'
-        dual_pixel_task = False        ## True for dual-pixel defocus deblurring only. Also set inp_channels=6
+        dual_pixel_task = False,        ## True for dual-pixel defocus deblurring only. Also set inp_channels=6
+        scale = 1
     ):
 
         super(Restormer, self).__init__()
@@ -238,6 +258,12 @@ class Restormer(nn.Module):
         self.dual_pixel_task = dual_pixel_task
         if self.dual_pixel_task:
             self.skip_conv = nn.Conv2d(dim, int(dim*2**1), kernel_size=1, bias=bias)
+        ###########################
+
+        #### For Image SuperResolution Task ####
+        self.scale = scale
+        if self.scale>1:
+            self.sr_upsampler = SR_Upsample(scale, out_channels)
         ###########################
             
         self.output = nn.Conv2d(int(dim*2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
@@ -277,6 +303,9 @@ class Restormer(nn.Module):
             out_dec_level1 = out_dec_level1 + self.skip_conv(inp_enc_level1)
             out_dec_level1 = self.output(out_dec_level1)
         ###########################
+        elif self.scale>1:
+            out_dec_level1 = self.output(out_dec_level1)
+            out_dec_level1 = self.sr_upsampler(out_dec_level1) + nn.functional.interpolate(inp_img, scale_factor=self.scale, mode='bicubic', align_corners=False)
         else:
             out_dec_level1 = self.output(out_dec_level1) + inp_img
 

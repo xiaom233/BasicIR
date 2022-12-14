@@ -16,11 +16,55 @@ from basicsr.models.archs import define_network
 from basicsr.models.base_model import BaseModel
 from basicsr.utils import get_root_logger, imwrite, tensor2img
 from basicsr.utils.dist_util import get_dist_info
-
+import numpy as np
+import cv2
 loss_module = importlib.import_module('basicsr.models.losses')
 metric_module = importlib.import_module('basicsr.metrics')
 
+def image_align(deblurred, gt):
+  # this function is based on kohler evaluation code
+  z = deblurred
+  c = np.ones_like(z)
+  x = gt
 
+  zs = (np.sum(x * z) / np.sum(z * z)) * z # simple intensity matching
+
+  warp_mode = cv2.MOTION_HOMOGRAPHY
+  warp_matrix = np.eye(3, 3, dtype=np.float32)
+
+  # Specify the number of iterations.
+  number_of_iterations = 100
+
+  termination_eps = 0
+
+  criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+              number_of_iterations, termination_eps)
+
+  # Run the ECC algorithm. The results are stored in warp_matrix.
+  (cc, warp_matrix) = cv2.findTransformECC(cv2.cvtColor(x, cv2.COLOR_RGB2GRAY), cv2.cvtColor(zs, cv2.COLOR_RGB2GRAY), warp_matrix, warp_mode, criteria, inputMask=None, gaussFiltSize=5)
+
+  target_shape = x.shape
+  shift = warp_matrix
+
+  zr = cv2.warpPerspective(
+    zs,
+    warp_matrix,
+    (target_shape[1], target_shape[0]),
+    flags=cv2.INTER_CUBIC+ cv2.WARP_INVERSE_MAP,
+    borderMode=cv2.BORDER_REFLECT)
+
+  cr = cv2.warpPerspective(
+    np.ones_like(zs, dtype='float32'),
+    warp_matrix,
+    (target_shape[1], target_shape[0]),
+    flags=cv2.INTER_NEAREST+ cv2.WARP_INVERSE_MAP,
+    borderMode=cv2.BORDER_CONSTANT,
+    borderValue=0)
+
+  zr = zr * cr
+  xr = x * cr
+
+  return zr, xr, cr, shift
 class Mixing_Augment:
     def __init__(self, mixup_beta, use_identity, device):
         self.dist = torch.distributions.beta.Beta(torch.tensor([mixup_beta]), torch.tensor([mixup_beta]))
@@ -323,18 +367,18 @@ class ImageRestorationModel(BaseModel):
             self.output = torch.cat(outs, dim=0)
         self.net_g.train()
 
-    def expand2square(self, timg, factor):
+    def expand2square(self, timg, factor,scale):
         _, _, h, w = timg.size()
 
         X = int(math.ceil(max(h, w) / float(factor)) * factor)
 
         img = torch.zeros(1, 3, X, X).type_as(timg).to(self.device) # 3, h,w
-        mask = torch.zeros(1, 1, X, X).type_as(timg).to(self.device)
+        mask = torch.zeros(1, 1, X*scale, X*scale).type_as(timg).to(self.device)
 
         # print(img.size(),mask.size())
         # print((X - h)//2, (X - h)//2+h, (X - w)//2, (X - w)//2+w)
         img[:, :, ((X - h) // 2):((X - h) // 2 + h), ((X - w) // 2):((X - w) // 2 + w)] = timg
-        mask[:, :, ((X - h) // 2):((X - h) // 2 + h), ((X - w) // 2):((X - w) // 2 + w)].fill_(1)
+        mask[:, :, ((X - h)*scale // 2):((X - h)*scale // 2 + h*scale), ((X - w)*scale // 2):((X - w)*scale // 2 + w*scale)].fill_(1)
 
         return img, mask
 
@@ -363,12 +407,14 @@ class ImageRestorationModel(BaseModel):
     def dist_validation(self, dataloader, current_iter, tb_logger, save_img, rgb2bgr, use_image):
         dataset_name = dataloader.dataset.opt['name']
         with_metrics = self.opt['val'].get('metrics') is not None
+        scale = self.opt['scale']
         if with_metrics:
             self.metric_results = {
                 metric: 0
                 for metric in self.opt['val']['metrics'].keys()
             }
-
+        # if 'RealBlur_R' or 'RealBlur_J' in dataset_name:
+        #     self.metric_results['real_psnr'] = 0
         rank, world_size = get_dist_info()
         if rank == 0:
             pbar = tqdm(total=len(dataloader), unit='image')
@@ -391,12 +437,14 @@ class ImageRestorationModel(BaseModel):
             if self.opt['network_g']['type'] == 'Uformer':
                 factor = 128
                 original = self.lq
-                rgb_noisy, mask = self.expand2square(self.lq, factor)
+                rgb_noisy, mask = self.expand2square(self.lq, factor, scale)
                 self.lq = rgb_noisy
                 self.test()
                 self.lq = original
                 self.output = self.output.to(self.device)
-                self.output = torch.masked_select(self.output, mask.bool()).reshape(1,3,original.shape[2],original.shape[3])
+                # print("mask shape", mask.shape)
+                # print("output shape", self.output.shape)
+                self.output = torch.masked_select(self.output, mask.bool()).reshape(1,3,original.shape[2]*scale,original.shape[3]*scale)
             elif self.opt['network_g']['type'] == 'MAXIM':
                 factor = 64
                 original = self.lq
@@ -417,7 +465,7 @@ class ImageRestorationModel(BaseModel):
                 # print("Padding to",H,W)
                 # print("self.lq.size()", self.lq.size())
                 self.test()
-                self.output = self.output[:,:,:h,:w]
+                self.output = self.output[:,:,:h*scale,:w*scale]
 
             if self.opt['val'].get('grids', False):
                 self.grids_inverse()
@@ -432,7 +480,6 @@ class ImageRestorationModel(BaseModel):
             del self.lq
             del self.output
             torch.cuda.empty_cache()
-
             if save_img:
                 if sr_img.shape[2] == 6:
                     L_img = sr_img[:, :, :3]
@@ -467,12 +514,25 @@ class ImageRestorationModel(BaseModel):
             if with_metrics:
                 # calculate metrics
                 opt_metric = deepcopy(self.opt['val']['metrics'])
+                # if 'RealBlur_R' or 'RealBlur_J' in dataset_name:
+                #     gt_img = gt_img.astype(np.float32)/255.0
+                #     sr_img = sr_img.astype(np.float32)/255.0
+                #     sr_img, gt_img, image_mask, _ = image_align(sr_img,gt_img)
+                #     err = np.sum((gt_img - sr_img) ** 2, dtype=np.float64) / np.sum(image_mask)
+                #     self.metric_results["real_psnr"] += 10 * np.log10((1 ** 2) / err)
                 if use_image:
                     for name, opt_ in opt_metric.items():
                         metric_type = opt_.pop('type')
                         self.metric_results[name] += getattr(
                             metric_module, metric_type)(sr_img, gt_img, **opt_)
-
+                    # name = self.opt['name']
+                    # with open(name+'_'+dataset_name+'_psnr.txt', 'a') as f:
+                    #     psnr = getattr(metric_module, 'calculate_psnr')(sr_img, gt_img, **opt_)
+                    #     f.write(img_name + ' ' + str(psnr) + '\n')
+                    # with open('mse.txt', 'a') as f:
+                    #     import numpy as np
+                    #     mse = np.mean((sr_img - gt_img)**2)
+                    #     f.write(img_name + ' ' + str(mse) + '\n')
                 else:
                     for name, opt_ in opt_metric.items():
                         metric_type = opt_.pop('type')

@@ -1124,6 +1124,26 @@ class BasicUformerLayer(nn.Module):
             flops += blk.flops()
         return flops
 
+class SR_Upsample(nn.Sequential):
+    """SR_Upsample module.
+    Args:
+        scale (int): Scale factor. Supported scales: 2^n and 3.
+        num_feat (int): Channel number of features.
+    """
+
+    def __init__(self, scale, num_feat):
+        m = []
+        import math
+        if (scale & (scale - 1)) == 0:  # scale = 2^n
+            for _ in range(int(math.log(scale, 2))):
+                m.append(nn.Conv2d(num_feat, 4 * num_feat, kernel_size = 3, stride = 1, padding = 1))
+                m.append(nn.PixelShuffle(2))
+        elif scale == 3:
+            m.append(nn.Conv2d(num_feat, 9 * num_feat, 3, 1, 1))
+            m.append(nn.PixelShuffle(3))
+        else:
+            raise ValueError(f'scale {scale} is not supported. ' 'Supported scales: 2^n and 3.')
+        super(SR_Upsample, self).__init__(*m)
 
 class Uformer(nn.Module):
     def __init__(self, img_size=256, in_chans=3, dd_in=3,
@@ -1133,7 +1153,7 @@ class Uformer(nn.Module):
                  norm_layer=nn.LayerNorm, patch_norm=True,
                  use_checkpoint=False, token_projection='linear', token_mlp='leff',
                  dowsample=Downsample, upsample=Upsample, shift_flag=True, modulator=False, 
-                 cross_modulator=False, **kwargs):
+                 cross_modulator=False, scale =1 , **kwargs):
         super().__init__()
 
         self.num_enc_layers = len(depths)//2
@@ -1147,7 +1167,7 @@ class Uformer(nn.Module):
         self.reso = img_size
         self.pos_drop = nn.Dropout(p=drop_rate)
         self.dd_in = dd_in
-
+        self.scale = scale
         # stochastic depth
         enc_dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths[:self.num_enc_layers]))] 
         conv_dpr = [drop_path_rate]*depths[4]
@@ -1158,7 +1178,8 @@ class Uformer(nn.Module):
         # Input/Output
         self.input_proj = InputProj(in_channel=dd_in, out_channel=embed_dim, kernel_size=3, stride=1, act_layer=nn.LeakyReLU)
         self.output_proj = OutputProj(in_channel=2*embed_dim, out_channel=in_chans, kernel_size=3, stride=1)
-        
+        # if self.scale>1:
+        #     self.sr_upsample = SR_Upsample(scale=self.scale, num_feat=in_chans)
         # Encoder
         self.encoderlayer_0 = BasicUformerLayer(dim=embed_dim,
                             output_dim=embed_dim,
@@ -1326,6 +1347,8 @@ class Uformer(nn.Module):
         return f"embed_dim={self.embed_dim}, token_projection={self.token_projection}, token_mlp={self.mlp},win_size={self.win_size}"
 
     def forward(self, x, mask=None):
+        if self.scale>1:
+            x = F.interpolate(x, scale_factor=self.scale, mode='bicubic', align_corners=False)
         # Input Projection
         y = self.input_proj(x)
         y = self.pos_drop(y)
