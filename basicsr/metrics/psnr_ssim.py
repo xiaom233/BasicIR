@@ -76,7 +76,6 @@ def calculate_psnr(img1,
         return (_psnr(l1, l2) + _psnr(r1, r2))/2
     else:
         return _psnr(img1, img2)
-
 def calculate_psnr_left(img1,
                    img2,
                    crop_border,
