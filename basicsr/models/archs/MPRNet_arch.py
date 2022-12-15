@@ -6,6 +6,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 ##########################################################################
 def conv(in_channels, out_channels, kernel_size, bias=False, stride = 1):

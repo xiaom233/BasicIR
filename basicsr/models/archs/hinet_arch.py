@@ -14,6 +14,7 @@ HINet: Half Instance Normalization Network for Image Restoration
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 def conv3x3(in_chn, out_chn, bias=True):
     layer = nn.Conv2d(in_chn, out_chn, kernel_size=3, stride=1, padding=1, bias=bias)
