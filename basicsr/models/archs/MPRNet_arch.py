@@ -234,9 +234,10 @@ class ORSNet(nn.Module):
 
 ##########################################################################
 class MPRNet(nn.Module):
-    def __init__(self, in_c=3, out_c=3, n_feat=80, scale_unetfeats=48, scale_orsnetfeats=32, num_cab=8, kernel_size=3, reduction=4, bias=False):
+    def __init__(self, in_c=3, out_c=3, n_feat=80, scale_unetfeats=48, scale_orsnetfeats=32,
+                 num_cab=8, kernel_size=3, reduction=4, bias=False, scale=1):
         super(MPRNet, self).__init__()
-
+        self.scale = scale
         act=nn.PReLU()
         self.shallow_feat1 = nn.Sequential(conv(in_c, n_feat, kernel_size, bias=bias), CAB(n_feat,kernel_size, reduction, bias=bias, act=act))
         self.shallow_feat2 = nn.Sequential(conv(in_c, n_feat, kernel_size, bias=bias), CAB(n_feat,kernel_size, reduction, bias=bias, act=act))
@@ -260,6 +261,8 @@ class MPRNet(nn.Module):
 
     def forward(self, x3_img):
         # Original-resolution Image for Stage 3
+        if self.scale > 1:
+            x3_img = F.interpolate(x3_img, scale_factor=self.scale, mode='bicubic', align_corners=False)
         H = x3_img.size(2)
         W = x3_img.size(3)
 

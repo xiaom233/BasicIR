@@ -46,8 +46,9 @@ class SAM(nn.Module):
 
 class HINet(nn.Module):
 
-    def __init__(self, in_chn=3, wf=64, depth=5, relu_slope=0.2, hin_position_left=0, hin_position_right=4):
+    def __init__(self, in_chn=3, wf=64, depth=5, relu_slope=0.2, hin_position_left=0, hin_position_right=4, scale=1):
         super(HINet, self).__init__()
+        self.scale = scale
         self.depth = depth
         self.down_path_1 = nn.ModuleList()
         self.down_path_2 = nn.ModuleList()
@@ -78,6 +79,8 @@ class HINet(nn.Module):
         self.last = conv3x3(prev_channels, in_chn, bias=True)
 
     def forward(self, x):
+        if self.scale > 1:
+            x = F.interpolate(x, scale_factor=self.scale, mode='bicubic', align_corners=False)
         image = x
         #stage 1
         x1 = self.conv_01(image)
