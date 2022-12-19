@@ -5,30 +5,30 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: Restormer_motion_deblur
+name: 020_Restormer_motion_deblur
 model_type: ImageRestorationModel
 scale: 1
-num_gpu: 2 # set num_gpu: 0 for cpu mode
+num_gpu: 1 # set num_gpu: 0 for cpu mode
 manual_seed: 10
 
 # dataset and data loader settings
 datasets:
-  test1:
-    name: gopro-test
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/Motion_Deblurring/test/GoPro/target
-    dataroot_lq: ./datasets/Motion_Deblurring/test/GoPro/input
-    io_backend:
-      # type: lmdb
-      type: disk
-  # test2:
-  #   name: HIDE
+  # test1:
+  #   name: gopro-test
   #   type: PairedImageDataset
-  #   dataroot_gt: ./datasets/Motion_Deblurring/test/HIDE/target
-  #   dataroot_lq: ./datasets/Motion_Deblurring/test/HIDE/input
+  #   dataroot_gt: ./datasets/Motion_Deblurring/test/GoPro/target
+  #   dataroot_lq: ./datasets/Motion_Deblurring/test/GoPro/input
   #   io_backend:
   #     # type: lmdb
   #     type: disk
+  test2:
+    name: RealBlur_J
+    type: PairedImageDataset
+    dataroot_gt: ./datasets/Motion_Deblurring/test/RealBlur_J/target
+    dataroot_lq: ./datasets/Motion_Deblurring/test/RealBlur_J/input
+    io_backend:
+      # type: lmdb
+      type: disk
   test3:
     name: RealBlur_R
     type: PairedImageDataset
@@ -37,6 +37,14 @@ datasets:
     io_backend:
       # type: lmdb
       type: disk
+  # test4:
+  #   name: Sub_RealBlur_J
+  #   type: PairedImageDataset
+  #   dataroot_gt: ./datasets/Motion_Deblurring/test/Sub_RealBlur_J/target
+  #   dataroot_lq: ./datasets/Motion_Deblurring/test/Sub_RealBlur_J/input
+  #   io_backend:
+  #     # type: lmdb
+  #     type: disk
 # network structures
 network_g:
   type: Restormer
@@ -53,16 +61,15 @@ network_g:
 
 # path
 path:
-  pretrain_network_g:  experiments/020_Restormer_Benchmark_motion_deblur_Cosine_GT256B8_600k/models/net_g_latest.pth
+  pretrain_network_g:  /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/experiments/020_Restormer_Benchmark_motion_deblur_Cosine_GT256B8_600k/models/net_g_latest.pth
   strict_load_g: true
   resume_state: ~
 
 # validation settings
 val:
-  save_img: false
+  save_img: true
   grids: false
   padding_factor: 8
-  is_square: false
 
   metrics:
     psnr: # metric name, can be arbitrary

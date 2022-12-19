@@ -33,7 +33,7 @@ datasets:
     prefetch_mode: ~
 
   val:
-    name: ValSet
+    name: Rain100H
     type: PairedImageDataset
     dataroot_gt: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/Deraining/test/Rain100H/target
     dataroot_lq: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/datasets/Deraining/test/Rain100H/input
@@ -104,7 +104,7 @@ val:
 # logging settings
 logger:
   print_freq: 250
-  save_checkpoint_freq: !!float 5e3
+  save_checkpoint_freq: !!float 1e4
   use_tb_logger: true
   wandb:
     project: ~

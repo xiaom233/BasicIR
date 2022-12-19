@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: GaussianColorDenoising_RestormerSigma50
+name: Uformer_GaussianColorDenoising_Sigma50
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 3 # set num_gpu: 0 for cpu mode
@@ -64,21 +64,27 @@ datasets:
       # type: lmdb
       type: disk
 network_g:
-  type: Restormer
-  inp_channels: 3
-  out_channels: 3
-  dim: 48
-  num_blocks: [4,6,6,8]
-  num_refinement_blocks: 4
-  heads: [1,2,4,8]
-  ffn_expansion_factor: 2.66
-  bias: False
-  LayerNorm_type: BiasFree
-  dual_pixel_task: False
+  type: Uformer
+  img_size: 256
+  in_chans: 3
+  dd_in: 3
+  embed_dim: 32
+  depths: [1, 2, 8, 8, 2, 8, 8, 2, 1]
+  num_heads: [1, 2, 4, 8, 16, 16, 8, 4, 2]
+  win_size: 8
+  mlp_ratio: 4.
+  qkv_bias: True
+  qk_scale: ~
+  drop_rate: 0.
+  attn_drop_rate: 0.
+  drop_path_rate: 0.1
+  token_projection: linear
+  token_mlp: leff
+  modulator: True
 
 # path
 path:
-  pretrain_network_g: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/experiments/028_Restormer_Benchmark_Gaussian_Denoising_Cosine_GT256B8_600k/models/net_g_latest.pth
+  pretrain_network_g: experiments/041_Uformer_Benchmark_Gaussian_Denoising_Cosine_GT256B8_600k/models/net_g_latest.pth
   strict_load_g: true
   resume_state: ~
 

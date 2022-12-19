@@ -15,7 +15,7 @@ manual_seed: 10
 datasets:
   test_1:
     name: BSD68
-    type: Dataset_GaussianDenoising
+    type: GaussianNoiseImageDataset
     dataroot_gt: ./datasets/Denoising/test/BSD68
     dataroot_lq: none
     sigma_test: 50
@@ -25,7 +25,7 @@ datasets:
       type: disk
   test_2:
     name: CBSD68
-    type: Dataset_GaussianDenoising
+    type: GaussianNoiseImageDataset
     dataroot_gt: ./datasets/Denoising/test/CBSD68
     dataroot_lq: none
     sigma_test: 50
@@ -35,7 +35,7 @@ datasets:
       type: disk
   test_3:
     name: Kodak24
-    type: Dataset_GaussianDenoising
+    type: GaussianNoiseImageDataset
     dataroot_gt: ./datasets/Denoising/test/Kodak
     dataroot_lq: none
     sigma_test: 50
@@ -55,7 +55,7 @@ datasets:
   #     type: disk
   test_4:
     name: McMaster
-    type: Dataset_GaussianDenoising
+    type: GaussianNoiseImageDataset
     dataroot_gt: ./datasets/Denoising/test/McMaster
     dataroot_lq: none
     sigma_test: 50
@@ -65,7 +65,7 @@ datasets:
       type: disk
   test_5:
     name: Urban100
-    type: Dataset_GaussianDenoising
+    type: GaussianNoiseImageDataset
     dataroot_gt: ./datasets/Denoising/test/Urban100
     dataroot_lq: none
     sigma_test: 50
@@ -91,7 +91,7 @@ network_g:
 
 # path
 path:
-  pretrain_network_g: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/experiments/pretrained_models/SwinIR/005_colorDN_DFWB_s128w8_SwinIR-M_noise50.pth
+  pretrain_network_g: /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/experiments/032_SwinIR_Benchmark_Gaussian_Denoising_Cosine_GT256B8_600k/models/net_g_600000.pth
   strict_load_g: false
   resume_state: ~
 

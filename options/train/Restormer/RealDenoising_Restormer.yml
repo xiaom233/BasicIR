@@ -48,7 +48,7 @@ network_g:
   heads: [1,2,4,8]
   ffn_expansion_factor: 2.66
   bias: False
-  LayerNorm_type: BiasFree
+  LayerNorm_type: BiasFree #与Gaussian一致
   dual_pixel_task: False
 
 

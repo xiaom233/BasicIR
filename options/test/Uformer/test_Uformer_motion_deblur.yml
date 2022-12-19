@@ -13,11 +13,27 @@ manual_seed: 10
 
 # dataset and data loader settings
 datasets:
-  test:
+  test1:
     name: gopro-test
     type: PairedImageDataset
     dataroot_gt: ./datasets/Motion_Deblurring/test/GoPro/target
     dataroot_lq: ./datasets/Motion_Deblurring/test/GoPro/input
+    io_backend:
+      # type: lmdb
+      type: disk
+  test2:
+    name: RealBlur_J
+    type: PairedImageDataset
+    dataroot_gt: ./datasets/Motion_Deblurring/test/RealBlur_J/test/target
+    dataroot_lq: ./datasets/Motion_Deblurring/test/RealBlur_J/test/input
+    io_backend:
+      # type: lmdb
+      type: disk
+  test3:
+    name: RealBlur_R
+    type: PairedImageDataset
+    dataroot_gt: ./datasets/Motion_Deblurring/test/RealBlur_R/test/target
+    dataroot_lq: ./datasets/Motion_Deblurring/test/RealBlur_R/test/input
     io_backend:
       # type: lmdb
       type: disk

@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: 025_Restormer_real_denoise
+name: SwinIR_real_denoise
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 3 # set num_gpu: 0 for cpu mode
@@ -23,21 +23,22 @@ datasets:
       type: disk
 # network structures
 network_g:
-  type: Restormer
-  inp_channels: 3
-  out_channels: 3
-  dim: 48
-  num_blocks: [4,6,6,8]
-  num_refinement_blocks: 4
-  heads: [1,2,4,8]
-  ffn_expansion_factor: 2.66
-  bias: False
-  LayerNorm_type: BiasFree
-  dual_pixel_task: False
+  type: SwinIR
+  upscale: 1
+  in_chans: 3
+  img_size: 128
+  window_size: 8
+  img_range: 1.
+  depths: [6, 6, 6, 6, 6, 6]
+  embed_dim: 180
+  num_heads: [6, 6, 6, 6, 6, 6]
+  mlp_ratio: 2
+  upsampler: ''
+  resi_connection: '1conv'
 
 # path
 path:
-  pretrain_network_g:  experiments/pretrained_models/Restormer/real_denoising.pth
+  pretrain_network_g:  /mnt/petrelfs/puyuandong/Low_level_vision/BasicIR/experiments/039_SwinIR_Benchmark_Real_Denoising_Cosine_GT256B8_600k/models/net_g_latest.pth
   strict_load_g: False
   resume_state: ~
 
