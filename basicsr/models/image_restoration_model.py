@@ -119,7 +119,7 @@ class ImageRestorationModel(BaseModel):
         if load_path is not None:
             # print("load pretrained model",self.opt['path'].get('param_key', 'params'))
             self.load_network(self.net_g, load_path,
-                              self.opt['path'].get('strict_load_g', True), param_key=self.opt['path'].get('param_key', 'params'))
+                              self.opt['path'].get('strict_load_g', True), param_key=self.opt['path'].get('param_key', None))
 
         if self.is_train:
             self.init_training_settings()
@@ -464,6 +464,9 @@ class ImageRestorationModel(BaseModel):
                 # print("Image size: ",h,w)
                 # print("Padding to",H,W)
                 # print("self.lq.size()", self.lq.size())
+                # print("self.lq max", self.lq.max())
+                # print("self.gt max", self.gt.max())
+                # print("self.lq min", self.lq.min())
                 self.test()
                 self.output = self.output[:,:,:h*scale,:w*scale]
 

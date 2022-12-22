@@ -269,7 +269,8 @@ class Restormer(nn.Module):
         self.output = nn.Conv2d(int(dim*2**1), out_channels, kernel_size=3, stride=1, padding=1, bias=bias)
 
     def forward(self, inp_img):
-
+        if self.scale>1:
+            inp_img = nn.functional.interpolate(inp_img, scale_factor=self.scale, mode='bicubic', align_corners=False)
         inp_enc_level1 = self.patch_embed(inp_img)
         out_enc_level1 = self.encoder_level1(inp_enc_level1)
         
@@ -303,9 +304,6 @@ class Restormer(nn.Module):
             out_dec_level1 = out_dec_level1 + self.skip_conv(inp_enc_level1)
             out_dec_level1 = self.output(out_dec_level1)
         ###########################
-        elif self.scale>1:
-            out_dec_level1 = self.output(out_dec_level1)
-            out_dec_level1 = self.sr_upsampler(out_dec_level1) + nn.functional.interpolate(inp_img, scale_factor=self.scale, mode='bicubic', align_corners=False)
         else:
             out_dec_level1 = self.output(out_dec_level1) + inp_img
 
