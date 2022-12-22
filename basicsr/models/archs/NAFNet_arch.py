@@ -216,7 +216,7 @@ class NAFBlock(nn.Module):
 
 class NAFNet(nn.Module):
 
-    def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
+    def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[], scale=1):
         super().__init__()
 
         self.intro = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
@@ -229,6 +229,7 @@ class NAFNet(nn.Module):
         self.middle_blks = nn.ModuleList()
         self.ups = nn.ModuleList()
         self.downs = nn.ModuleList()
+        self.scale = scale
 
         chan = width
         for num in enc_blk_nums:
@@ -264,6 +265,8 @@ class NAFNet(nn.Module):
         self.padder_size = 2 ** len(self.encoders)
 
     def forward(self, inp):
+        if self.scale > 1:
+            inp = F.interpolate(inp, scale_factor=self.scale, mode='bicubic', align_corners=False)
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
 

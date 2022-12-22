@@ -1,0 +1,91 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2021 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: 042_HINet_Benchmark_Gaussian_sigma50_Cosine_GT256B8_600k
+model_type: ImageRestorationModel
+scale: 1
+num_gpu: 1 # set num_gpu: 0 for cpu mode
+manual_seed: 10
+
+# dataset and data loader settings
+datasets:
+  test_1:
+    name: BSD68
+    type: GaussianNoiseImageDataset
+    dataroot_gt: /data/zyli/datasets/Gaussian_test/CBSD68
+    dataroot_lq: none
+    sigma_test: 50
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+  test_2:
+    name: Kodak24
+    type: GaussianNoiseImageDataset
+    dataroot_gt: /data/zyli/datasets/Gaussian_test/Kodak
+    dataroot_lq: none
+    sigma_test: 50
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+
+  test_3:
+    name: McMaster
+    type: GaussianNoiseImageDataset
+    dataroot_gt: /data/zyli/datasets/Gaussian_test/McMaster
+    dataroot_lq: none
+    sigma_test: 50
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+  test_4:
+    name: Urban100
+    type: GaussianNoiseImageDataset
+    dataroot_gt: /data/zyli/datasets/Gaussian_test/Urban100
+    dataroot_lq: none
+    sigma_test: 50
+    in_ch: 3  ## RGB image
+    io_backend:
+      # type: lmdb
+      type: disk
+
+# network structures
+network_g:
+  type: HINet
+  wf: 64
+  hin_position_left: 0
+  hin_position_right: 4
+
+# path
+path:
+  pretrain_network_g: /data/zyli/projects/BasicIR/experiments/042_HINet_Benchmark_Gaussian_sigma50_Cosine_GT256B8_600k/models/net_g_latest.pth
+  strict_load_g: true
+  resume_state: ~
+
+# validation settings
+val:
+  save_img: true
+  grids: false
+  use_image : true
+  padding_factor: 16
+  is_square: false
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29501
