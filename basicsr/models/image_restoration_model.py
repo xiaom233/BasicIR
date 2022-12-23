@@ -119,7 +119,7 @@ class ImageRestorationModel(BaseModel):
         if load_path is not None:
             # print("load pretrained model",self.opt['path'].get('param_key', 'params'))
             self.load_network(self.net_g, load_path,
-                              self.opt['path'].get('strict_load_g', True), param_key=self.opt['path'].get('param_key', None))
+                              self.opt['path'].get('strict_load_g', True), param_key=self.opt['path'].get('param_key', 'params'))
 
         if self.is_train:
             self.init_training_settings()
