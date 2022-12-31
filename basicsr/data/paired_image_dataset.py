@@ -5,6 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 from torch.utils import data as data
+from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 from torchvision.transforms.functional import normalize
 import torch.nn.functional as F
 from basicsr.data.data_util import (paired_paths_from_folder,
@@ -405,17 +406,34 @@ class DehazingImageDataset(data.Dataset):
             #crop gt image to lq image size
             gt_h, gt_w, _ = img_gt.shape
             lq_h, lq_w, _ = img_lq.shape
-            img_gt = img_gt[(gt_h-lq_h)//2:(gt_h+lq_h)//2, (gt_w-lq_w)//2:(gt_w+lq_w)//2, :]
+            img_gt = img_gt[(gt_h-lq_h)//2:(gt_h+lq_h)//2, (gt_w-lq_w)//2:(gt_w+lq_w)//2, :] #裁边
+            # BGR_>RGB
+            img_gt = img_gt[:, :, ::-1]
+            img_lq = img_lq[:, :, ::-1]
+            img_gt = img_gt.copy()
+            img_lq = img_lq.copy()
+            a = [0, 0]
+            a[0], a[1], _ = img_gt.shape
+            a_0 = a[1] - np.mod(a[1], 16)
+            a_1 = a[0] - np.mod(a[0], 16)
+            # haze_crop_img = img_lq.crop((0, 0, 0 + a_1, 0 + a_0))
+            # gt_crop_img = img_gt.crop((0, 0, 0 + a_1, 0 + a_0))
+            haze_crop_img = img_lq[0:a_1, 0:a_0, :]
+            gt_crop_img = img_gt[0:a_1, 0:a_0, :]
+            transform_haze = Compose([ToTensor(), Normalize((0.64, 0.6, 0.58), (0.14, 0.15, 0.152))])
+            transform_gt = Compose([ToTensor()])
+            img_lq = transform_haze(haze_crop_img)
+            img_gt = transform_gt(gt_crop_img)
 
         # TODO: color space transform
         # BGR to RGB, HWC to CHW, numpy to tensor
-        img_gt, img_lq = img2tensor([img_gt, img_lq],
-                                    bgr2rgb=True,
-                                    float32=True)
+        # img_gt, img_lq = img2tensor([img_gt, img_lq],
+        #                             bgr2rgb=True,
+        #                             float32=True)
         # normalize
-        if self.mean is not None or self.std is not None:
-            normalize(img_lq, self.mean, self.std, inplace=True)
-            normalize(img_gt, self.mean, self.std, inplace=True)
+        # if self.mean is not None or self.std is not None:
+        #     normalize(img_lq, self.mean, self.std, inplace=True)
+        #     normalize(img_gt, self.mean, self.std, inplace=True)
 
         return {
             'lq': img_lq,
