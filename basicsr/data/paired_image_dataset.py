@@ -412,14 +412,10 @@ class DehazingImageDataset(data.Dataset):
             img_lq = img_lq[:, :, ::-1]
             img_gt = img_gt.copy()
             img_lq = img_lq.copy()
-            a = [0, 0]
-            a[0], a[1], _ = img_gt.shape
-            haze_crop_img = img_lq[0:a_1, 0:a_0, :]
-            gt_crop_img = img_gt[0:a_1, 0:a_0, :]
             transform_haze = Compose([ToTensor()])
             transform_gt = Compose([ToTensor()])
-            img_lq = transform_haze(haze_crop_img)
-            img_gt = transform_gt(gt_crop_img)
+            img_lq = transform_haze(img_lq)
+            img_gt = transform_gt(img_gt)
 
         # TODO: color space transform
         # BGR to RGB, HWC to CHW, numpy to tensor
