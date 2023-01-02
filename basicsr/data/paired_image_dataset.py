@@ -414,13 +414,9 @@ class DehazingImageDataset(data.Dataset):
             img_lq = img_lq.copy()
             a = [0, 0]
             a[0], a[1], _ = img_gt.shape
-            a_0 = a[1] - np.mod(a[1], 16)
-            a_1 = a[0] - np.mod(a[0], 16)
-            # haze_crop_img = img_lq.crop((0, 0, 0 + a_1, 0 + a_0))
-            # gt_crop_img = img_gt.crop((0, 0, 0 + a_1, 0 + a_0))
             haze_crop_img = img_lq[0:a_1, 0:a_0, :]
             gt_crop_img = img_gt[0:a_1, 0:a_0, :]
-            transform_haze = Compose([ToTensor(), Normalize((0.64, 0.6, 0.58), (0.14, 0.15, 0.152))])
+            transform_haze = Compose([ToTensor()])
             transform_gt = Compose([ToTensor()])
             img_lq = transform_haze(haze_crop_img)
             img_gt = transform_gt(gt_crop_img)
