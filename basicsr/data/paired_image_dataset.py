@@ -402,6 +402,14 @@ class DehazingImageDataset(data.Dataset):
             # flip, rotation
             img_gt, img_lq = augment([img_gt, img_lq], self.opt['use_flip'],
                                      self.opt['use_rot'])
+            img_gt = img_gt[:, :, ::-1]
+            img_lq = img_lq[:, :, ::-1]
+            img_gt = img_gt.copy()
+            img_lq = img_lq.copy()
+            transform_haze = Compose([ToTensor()])
+            transform_gt = Compose([ToTensor()])
+            img_lq = transform_haze(img_lq)
+            img_gt = transform_gt(img_gt)
         else:
             #crop gt image to lq image size
             gt_h, gt_w, _ = img_gt.shape
@@ -426,7 +434,6 @@ class DehazingImageDataset(data.Dataset):
         # if self.mean is not None or self.std is not None:
         #     normalize(img_lq, self.mean, self.std, inplace=True)
         #     normalize(img_gt, self.mean, self.std, inplace=True)
-
         return {
             'lq': img_lq,
             'gt': img_gt,
